@@ -1,36 +1,20 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import cors from 'cors';
+//import cors from 'cors';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
+import { typeDefs,resolvers } from './graphql/schema.js';
+import {authMiddleware} from './middleware/auth.js';
 
 //load env variables
 dotenv.config();
 
 const app = express();
-app.use(cors());
+//app.use(cors());
 app.use(express.json());
 
-//mongodb connection
-mongoose.connect(process.env.MONGO_URL) 
-    .then(() => console.log("Connected to MongoDB"))
-    .catch((err) => console.log("MongoDB error",err));
-
-    //Apollo GraphQl setup
-    const typeDefs=`
-    type Query{
-        hello:String
-    }
-    `;
-     
-    const resolvers={
-        Query:{
-            hello:()=>'Hello world!'
-        }
-    };
-
-    const server= new ApolloServer({
+ const server= new ApolloServer({
         typeDefs,
         resolvers
     });
@@ -42,16 +26,29 @@ mongoose.connect(process.env.MONGO_URL)
         app.use(
             //this is the path for your graphQl endpoint
             '/graphql',
-            cors(),
-            express.json(),
-            expressMiddleware(server)
+           expressMiddleware(server,{
+                context:async({req,res})=>
+                    {
+                        authMiddleware(req,res,()=>{});
+                        return {user:req.user};
+                    }
+           })
         );
-    }
-
-    //start express server
+        mongoose.connect(process.env.MONGO_URL) 
+    .then(() => {
+    console.log("Connected to MongoDB")
     const PORT=process.env.PORT || 4000;
     app.listen(PORT,()=>{
         console.log(`Server is ready at http://localhost:${PORT}/graphql`);
     });
+})
+.catch(err => console.log("MongoDB error",err));
+    }
+
+//mongodb connection
+
+
+    //start express server
+    
 
     startServer();

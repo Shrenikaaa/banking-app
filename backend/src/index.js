@@ -6,6 +6,7 @@ import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
 import { typeDefs,resolvers } from './graphql/schema.js';
 import {authMiddleware} from './middleware/auth.js';
+import accountRoutes from './routes/accountRoutes.js';
 
 //load env variables
 dotenv.config();
@@ -23,6 +24,9 @@ app.use(express.json());
         //start the apollo server
         await server.start();
         //use express middleware to integrate apollo server with express application
+        //Integrate the account REST API routes
+        app.use("/api/accounts",accountRoutes);
+        //use middleware to integrate apollo server with express application
         app.use(
             //this is the path for your graphQl endpoint
             '/graphql',
